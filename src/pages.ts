@@ -591,7 +591,7 @@ function addMdlToForm(mid) {
   const c = document.getElementById('amodels')
   const d = document.createElement('div')
   d.className = 'fc mb-4 field-row'
-  d.innerHTML = '<input type="text" value="' + escapeHtml(mid) + '" class="fx1 ami" aria-label="模型 ID"><label class="tg"><input type="checkbox" checked class="ame" aria-label="启用模型"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy"></i></button><button class="icon-btn" onclick="testNewMdl(this)" title="测试模型" aria-label="测试模型"><i class="fas fa-plug"></i></button><button class="icon-btn" onclick="this.parentElement.remove()" title="移除模型" aria-label="移除模型"><i class="fas fa-times"></i></button>'
+  d.innerHTML = '<input type="text" value="' + escapeHtml(mid) + '" class="fx1 ami" aria-label="模型 ID"><label class="tg"><input type="checkbox" checked class="ame" aria-label="启用模型"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy"></i></button><button class="icon-btn" onclick="testNewMdl(this)" title="测试模型" aria-label="测试模型"><i class="fas fa-plug" aria-hidden="true"></i></button><button class="icon-btn" onclick="this.parentElement.remove()" title="移除模型" aria-label="移除模型"><i class="fas fa-times" aria-label="移除模型"><i class="fas fa-times"></i></button>'
   c.appendChild(d)
 }
 
@@ -599,11 +599,11 @@ function testNewMdl(btn) {
   const inp = btn.parentElement.querySelector('.ami'), mid = inp.value.trim()
   if (!mid) { toast('请输入模型 ID', 'error'); return }
   const url = document.getElementById('aurl').value.trim()
-    const akeys = document.querySelectorAll('#akeys .aki')
-    const configuredKey = Array.from(akeys).map(function(inp) { return inp.value.trim() }).filter(Boolean)[0] || ''
-    const apiType = document.getElementById('afmt').value
-    const tr = document.getElementById('atestR')
-    showSpinner(tr)
+  const akeys = document.querySelectorAll('#akeys .aki')
+  const configuredKey = Array.from(akeys).map(function(inp) { return inp.value.trim() }).filter(Boolean)[0] || ''
+  const apiType = document.getElementById('afmt').value
+  const tr = document.getElementById('atestR')
+  showSpinner(tr)
   const providerId = document.getElementById('aid').value.trim()
   const apiKey = configuredKey || (providerId === 'opencode' ? '' : 'dummy')
   testModelConnection(url, apiType, apiKey, mid, providerId).then(function(result) {
@@ -615,7 +615,7 @@ async function createProv() {
   const nm = document.getElementById('anm').value.trim(), id = document.getElementById('aid').value.trim()
   const url = document.getElementById('aurl').value.trim(), apiType = document.getElementById('afmt').value
   const aki = document.querySelectorAll('#akeys .aki')
-  const keys = Array.from(aki).map((inp, i) => {
+  const keys = Array.from(aki).map((inp) => {
     const k = inp.value.trim()
     const en = inp.parentElement.querySelector('.ake')?.checked ?? true
     return k ? { key: k, enabled: en } : null
@@ -641,23 +641,24 @@ async function createProv() {
 // provider api keys (edit)
 function getKeys(id) {
   const c = document.getElementById('keys-' + id)
-  const items = c.querySelectorAll('[data-kidx]')
-  return Array.from(items).map(item => {
-    const idx = parseInt(item.dataset.kidx)
-    const k = document.getElementById('k-' + id + '-' + idx).value.trim()
-    const en = document.getElementById('ken-' + id + '-' + idx).checked
-    return k ? { key: k, enabled: en } : null
+  if (!c) return []
+  return Array.from(c.querySelectorAll('[data-kidx]')).map(item => {
+    const input = item.querySelector('input[type="text"]')
+    const enabled = item.querySelector('input[type="checkbox"]')
+    const k = input ? input.value.trim() : ''
+    return k ? { key: k, enabled: enabled ? enabled.checked : true } : null
   }).filter(Boolean)
 }
 
 function addKeyRow(id) {
   const inp = document.getElementById('nk-' + id)
   const c = document.getElementById('keys-' + id)
-  // 已有 key 的去重集合
+  if (!inp || !c) return
+  // 已有 key 的去重集合；行被删除后不复用旧索引，避免 DOM id 冲突。
   const existing = new Set()
   c.querySelectorAll('[data-kidx]').forEach(function(item) {
-    const idx = parseInt(item.dataset.kidx)
-    const v = document.getElementById('k-' + id + '-' + idx)?.value?.trim()
+    const input = item.querySelector('input[type="text"]')
+    const v = input ? input.value.trim() : ''
     if (v) existing.add(v)
   })
   const keys = parseKeys(inp.value)
@@ -665,11 +666,14 @@ function addKeyRow(id) {
   keys.forEach(function(k) {
     if (existing.has(k)) return
     existing.add(k)
-    const cnt = c.querySelectorAll('[data-kidx]').length
+    const indexes = Array.from(c.querySelectorAll('[data-kidx]')).map(function(item) {
+      return Number(item.dataset.kidx)
+    }).filter(Number.isFinite)
+    const cnt = indexes.length ? Math.max.apply(null, indexes) + 1 : 0
     const d = document.createElement('div')
     d.className = 'fc mb-3 field-row'
     d.dataset.kidx = cnt
-    d.innerHTML = '<input type="text" value="' + k + '" class="fx1" id="k-' + id + '-' + cnt + '" placeholder="API Key"><label class="tg"><input type="checkbox" checked id="ken-' + id + '-' + cnt + '"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制 Key" aria-label="复制 Key"><i class="far fa-copy"></i></button><button class="icon-btn" onclick="testKeyRow(\'' + id + '\',' + cnt + ')" title="测试 Key" aria-label="测试 Key"><i class="fas fa-plug"></i></button><button class="icon-btn" onclick="rmKeyRow(\'' + id + '\',' + cnt + ')" title="移除 Key" aria-label="移除 Key"><i class="fas fa-times"></i></button>'
+    d.innerHTML = '<input type="text" value="' + escapeHtml(k) + '" class="fx1" id="k-' + id + '-' + cnt + '" placeholder="API Key"><label class="tg"><input type="checkbox" checked id="ken-' + id + '-' + cnt + '"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制 Key" aria-label="复制 Key"><i class="far fa-copy"></i></button><button class="icon-btn" onclick="testKeyRow(\'' + id + '\',' + cnt + ')" title="测试 Key" aria-label="测试 Key"><i class="fas fa-plug" aria-hidden="true"></i></button><button class="icon-btn" onclick="rmKeyRow(\'' + id + '\',' + cnt + ')" title="移除 Key" aria-label="移除 Key"><i class="fas fa-times"></i></button>'
     c.appendChild(d)
     added++
   })
@@ -682,13 +686,15 @@ function addKeyRow(id) {
 
 function rmKeyRow(id, idx) {
   const c = document.getElementById('keys-' + id)
+  if (!c) return
   c.querySelectorAll('[data-kidx]').forEach(item => {
-    if (parseInt(item.dataset.kidx) === idx) item.remove()
+    if (Number(item.dataset.kidx) === Number(idx)) item.remove()
   })
 }
 
 async function testKeyRow(id, idx) {
-  const k = document.getElementById('k-' + id + '-' + idx).value.trim()
+  const input = document.getElementById('k-' + id + '-' + idx)
+  const k = input ? input.value.trim() : ''
   const url = document.getElementById('url-' + id).value.trim()
   if (!k) { toast('请输入 API Key', 'error'); return }
   const apiType = document.getElementById('at-' + id).value
@@ -733,16 +739,20 @@ function showEditModelsList(id, models) {
 }
 
 function addMdlToEdit(id, mid) {
-  document.getElementById('nmid-' + id).value = mid
+  const input = document.getElementById('nmid-' + id)
+  if (!input) return
+  input.value = mid
   addMdl(id)
 }
 
 function getMdl(id) {
-  const c = document.getElementById('ml-' + id), items = c.querySelectorAll('[data-idx]')
-  return Array.from(items).map(item => {
-    const idx = parseInt(item.dataset.idx), mid = document.getElementById('mid-' + id + '-' + idx).value.trim()
-    const en = document.getElementById('men-' + id + '-' + idx).checked
-    return mid ? { id: mid, enabled: en } : null
+  const c = document.getElementById('ml-' + id)
+  if (!c) return []
+  return Array.from(c.querySelectorAll('[data-idx]')).map(item => {
+    const input = item.querySelector('input[type="text"]')
+    const enabled = item.querySelector('input[type="checkbox"]')
+    const mid = input ? input.value.trim() : ''
+    return mid ? { id: mid, enabled: enabled ? enabled.checked : true } : null
   }).filter(Boolean)
 }
 
@@ -770,13 +780,19 @@ async function del(id) {
 }
 
 function addMdl(id) {
-  const inp = document.getElementById('nmid-' + id), mid = inp.value.trim()
+  const inp = document.getElementById('nmid-' + id)
+  const mid = inp ? inp.value.trim() : ''
   if (!mid) { toast('请输入模型 ID', 'error'); return }
-  const c = document.getElementById('ml-' + id), cnt = c.querySelectorAll('[data-idx]').length
+  const c = document.getElementById('ml-' + id)
+  if (!c) return
+  const indexes = Array.from(c.querySelectorAll('[data-idx]')).map(function(item) {
+    return Number(item.dataset.idx)
+  }).filter(Number.isFinite)
+  const cnt = indexes.length ? Math.max.apply(null, indexes) + 1 : 0
   const d = document.createElement('div')
   d.className = 'fc mb-3 field-row'
   d.dataset.idx = cnt
-  d.innerHTML = '<input type="text" value="' + escapeHtml(mid) + '" class="fx1" id="mid-' + escapeHtml(id) + '-' + cnt + '" placeholder="模型 ID"><label class="tg"><input type="checkbox" checked id="men-' + escapeHtml(id) + '-' + cnt + '"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy"></i></button><button class="icon-btn" id="tm-' + escapeHtml(id) + '-' + cnt + '" title="测试模型" aria-label="测试模型"><i class="fas fa-plug"></i></button><button class="icon-btn" id="rm-' + escapeHtml(id) + '-' + cnt + '" title="移除模型" aria-label="移除模型"><i class="fas fa-times"></i></button>'
+  d.innerHTML = '<input type="text" value="' + escapePageHtml(mid) + '" class="fx1" id="mid-' + escapePageHtml(id) + '-' + cnt + '" placeholder="模型 ID"><label class="tg"><input type="checkbox" checked id="men-' + escapePageHtml(id) + '-' + cnt + '"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy"></i></button><button class="icon-btn" id="tm-' + escapePageHtml(id) + '-' + cnt + '" title="测试模型" aria-label="测试模型"><i class="fas fa-plug"></i></button><button class="icon-btn" id="rm-' + escapePageHtml(id) + '-' + cnt + '" title="移除模型" aria-label="移除模型"><i class="fas fa-times"></i></button>'
   c.appendChild(d)
   document.getElementById('tm-' + id + '-' + cnt).addEventListener('click', function() { testMdl(id, mid, cnt) })
   document.getElementById('rm-' + id + '-' + cnt).addEventListener('click', function() { rmMdl(id, cnt) })
@@ -785,8 +801,9 @@ function addMdl(id) {
 
 function rmMdl(id, idx) {
   const c = document.getElementById('ml-' + id)
+  if (!c) return
   c.querySelectorAll('[data-idx]').forEach(item => {
-    if (parseInt(item.dataset.idx) === idx) item.remove()
+    if (Number(item.dataset.idx) === Number(idx)) item.remove()
   })
 }
 
