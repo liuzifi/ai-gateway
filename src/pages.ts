@@ -539,7 +539,7 @@ function renderModelGrid(models, editId, providerId) {
       : "addMdlToForm('" + modelId + "')"
     return '<div class="mdl-item">' +
       '<i class="fas fa-cube"></i>' +
-			'<span class="fx1 cp ov" onclick="copyText(\\'' + modelId + '\\',this)">' + safeId + '</span>' +
+      '<span class="fx1 cp ov" onclick="copyText(\'' + modelId + '\',this)">' + safeId + '</span>' +
       '<button class="btn btn-gh mdl-add-btn" onclick="' + addFn + '" title="添加到表单">+</button></div>'
   }).join('')
   return '<div class="grid-2-gap6">' + h + '</div>'
@@ -550,7 +550,7 @@ function modelPanelHeading(panelId) {
   return '<div class="panel-heading"><div>' +
     '<span class="panel-heading__mark"><i class="fas fa-cube" aria-hidden="true"></i></span>' +
     '<div><h3>可用模型</h3><p>点击“+”添加到配置。</p></div></div>' +
-    '<button class="icon-btn" type="button" onclick="hideMdlPanel(\\'' + panelId + '\\')" title="关闭可用模型" aria-label="关闭可用模型"><i class="fas fa-times" aria-hidden="true"></i></button></div>'
+    '<button class="icon-btn" type="button" onclick="hideMdlPanel(\'' + panelId + '\')" title="关闭可用模型" aria-label="关闭可用模型"><i class="fas fa-times" aria-hidden="true"></i></button></div>'
 }
 
 // 关闭可用模型面板（仅隐藏，不清空已获取的模型数据）
