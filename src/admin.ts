@@ -26,18 +26,38 @@ import type {
 // ===== 系统状态 =====
 
 /**
- * 将 string[] 或正规对象数组统一转换为正规对象数组
- * 例: ["k1","k2"] → [{key:"k1",enabled:true},{key:"k2",enabled:true}]
+ * 将字符串或对象数组统一转换为正规对象数组，并按 key/id 去重。
+ * 字符串输入支持英文逗号、中文逗号、空白字符和换行分隔。
  */
 function normalizeArray<T>(
   items: unknown,
   mapFn: (val: string) => T
 ): T[] {
-  if (!Array.isArray(items)) return []
-  if (items.length === 0 || typeof items[0] === 'string') {
-    return (items as string[]).map(mapFn)
+  const values = Array.isArray(items)
+    ? items.flatMap((item) => typeof item === 'string' ? item.split(/[\s,，]+/) : [item])
+    : typeof items === 'string'
+      ? items.split(/[\s,，]+/)
+      : []
+  const seen = new Set<string>()
+  const result: T[] = []
+
+  for (const value of values) {
+    if (typeof value === 'string') {
+      const normalized = value.trim()
+      if (!normalized || seen.has(normalized)) continue
+      seen.add(normalized)
+      result.push(mapFn(normalized))
+      continue
+    }
+    if (!value || typeof value !== 'object') continue
+    const record = value as Record<string, unknown>
+    const field = typeof record.key === 'string' ? 'key' : typeof record.id === 'string' ? 'id' : null
+    const normalized = field ? String(record[field]).trim() : ''
+    if (!field || !normalized || seen.has(normalized)) continue
+    seen.add(normalized)
+    result.push({ ...record, [field]: normalized } as T)
   }
-  return items as T[]
+  return result
 }
 
 export async function handleStatus(c: Context<{ Bindings: Env }>) {
@@ -93,7 +113,7 @@ export async function handleCreateProvider(c: Context<{ Bindings: Env }>) {
     name: body.name,
     baseUrl: body.baseUrl.replace(/\/$/, ''),
     apiType: body.apiType || 'openai',
-apiKeys: normalizeArray(body.apiKeys, (k) => ({ key: k, enabled: true })),
+    apiKeys: normalizeArray(body.apiKeys, (k) => ({ key: k, enabled: true })),
     models: body.models
       ? normalizeArray(body.models, (m) => ({ id: m, enabled: true }))
       : [],
@@ -115,7 +135,7 @@ export async function handleUpdateProvider(c: Context<{ Bindings: Env }>) {
   if (body.name !== undefined) updates.name = body.name
   if (body.baseUrl !== undefined) updates.baseUrl = body.baseUrl.replace(/\/$/, '')
   if (body.apiType !== undefined) updates.apiType = body.apiType
-if (body.apiKeys !== undefined) {
+  if (body.apiKeys !== undefined) {
     updates.apiKeys = normalizeArray(body.apiKeys, (k) => ({ key: k, enabled: true }))
   }
   if (body.enabled !== undefined) updates.enabled = body.enabled
