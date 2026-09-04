@@ -382,7 +382,7 @@ ${H('管理')}
               <div class="fr"><div class="fg"><label>名称</label><input type="text" id="nm-${escapePageHtml(p.id)}" value="${escapePageHtml(p.name)}"></div><div class="fg"><label>ID</label><input type="text" value="${escapePageHtml(p.id)}" disabled></div></div>
               <div class="fg"><label>API 地址</label><input type="url" id="url-${escapePageHtml(p.id)}" value="${escapePageHtml(p.baseUrl)}"></div>
               <div class="fg"><label>API 格式</label><select id="at-${escapePageHtml(p.id)}" class="select-sm"><option value="openai" ${(p.apiType||'openai')==='openai'?'selected':''}>OpenAI 兼容</option><option value="anthropic" ${p.apiType==='anthropic'?'selected':''}>Anthropic 兼容</option></select></div>
-              <fieldset class="form-group"><legend>上游 API Keys</legend><p class="form-helper">支持用英文逗号、中文逗号、空格或换行批量添加，保存时自动去重；可按顺序逐个测试。</p><div id="keys-${escapePageHtml(p.id)}">${p.apiKeys.map((k, ki)=>`<div class="fc mb-3 field-row" data-kidx="${ki}"><input type="text" value="${escapePageHtml(k.key)}" class="fx1" id="k-${escapePageHtml(p.id)}-${ki}" placeholder="API Key" aria-label="API Key"><label class="tg"><input type="checkbox" ${k.enabled?'checked':''} id="ken-${escapePageHtml(p.id)}-${ki}" aria-label="启用 Key"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制 Key" aria-label="复制 Key"><i class="far fa-copy" aria-hidden="true"></i></button><button class="icon-btn" onclick="testKeyRow('${p.id}',${ki})" title="测试 Key" aria-label="测试 Key"><i class="fas fa-plug" aria-hidden="true"></i></button><span class="key-test-status" id="kts-${escapePageHtml(p.id)}-${ki}" role="status" aria-live="polite"></span><button class="icon-btn" onclick="rmKeyRow('${p.id}',${ki})" title="移除 Key" aria-label="移除 Key"><i class="fas fa-times" aria-hidden="true"></i></button></div>`).join('')}</div><div class="fc mt-1 field-row"><input type="text" id="nk-${escapePageHtml(p.id)}" placeholder="新的 API Key，可批量粘贴" class="fx1"><button class="btn btn-s" onclick="addKeyRow('${p.id}')"><i class="fas fa-plus" aria-hidden="true"></i>添加</button><button class="btn btn-s" data-batch-test="keys" onclick="testAllKeys('${p.id}')" title="依次测试当前列表中的全部 Key"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部 Key</button></div></fieldset>
+              <fieldset class="form-group"><legend>上游 API Keys</legend><p class="form-helper">支持用英文逗号、中文逗号、空格或换行批量添加，保存时自动去重；可按顺序逐个测试。</p><div id="keys-${escapePageHtml(p.id)}">${p.apiKeys.map((k, ki)=>`<div class="fc mb-3 field-row" data-kidx="${ki}"><input type="text" value="${escapePageHtml(k.key)}" class="fx1" id="k-${escapePageHtml(p.id)}-${ki}" placeholder="API Key" aria-label="API Key"><label class="tg"><input type="checkbox" ${k.enabled?'checked':''} id="ken-${escapePageHtml(p.id)}-${ki}" aria-label="启用 Key"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制 Key" aria-label="复制 Key"><i class="far fa-copy" aria-hidden="true"></i></button><button class="icon-btn" onclick="testKeyRow('${p.id}',${ki})" title="测试 Key" aria-label="测试 Key"><i class="fas fa-plug" aria-hidden="true"></i></button><span class="key-test-status" id="kts-${escapePageHtml(p.id)}-${ki}" role="status" aria-live="polite"></span><button class="icon-btn" onclick="rmKeyRow('${p.id}',${ki})" title="移除 Key" aria-label="移除 Key"><i class="far fa-times"></i></button></div>`).join('')}</div><div class="fc mt-1 field-row"><input type="text" id="nk-${escapePageHtml(p.id)}" placeholder="新的 API Key，可批量粘贴" class="fx1"><button class="btn btn-s" onclick="addKeyRow('${p.id}')"><i class="fas fa-plus" aria-hidden="true"></i>添加</button><button class="btn btn-s" data-batch-test="keys" onclick="testAllKeys('${p.id}')" title="依次测试当前列表中的全部 Key"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部 Key</button></div></fieldset>
               <fieldset class="form-group"><legend>模型</legend><div id="ml-${escapePageHtml(p.id)}">${p.models.map((m,mi)=>`<div class="fc mb-3 field-row" data-idx="${mi}"><input type="text" value="${escapePageHtml(m.id)}" class="fx1" id="mid-${escapePageHtml(p.id)}-${mi}" placeholder="模型 ID"><label class="tg"><input type="checkbox" ${m.enabled?'checked':''} id="men-${escapePageHtml(p.id)}-${mi}" aria-label="启用模型"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy" aria-hidden="true"></i></button><button class="icon-btn" onclick="testMdl('${p.id}','${m.id}',${mi})" title="测试模型" aria-label="测试模型"><i class="fas fa-plug" aria-hidden="true"></i></button><span class="model-test-status" id="mts-${escapePageHtml(p.id)}-${mi}" role="status" aria-live="polite"></span><button class="icon-btn" onclick="rmMdl('${p.id}',${mi})" title="移除模型" aria-label="移除模型"><i class="fas fa-times" aria-hidden="true"></i></button></div>`).join('')}</div><div class="fc mt-1 field-row"><input type="text" id="nmid-${escapePageHtml(p.id)}" placeholder="新的模型 ID" class="fx1"><button class="btn btn-s" onclick="addMdl('${p.id}')"><i class="fas fa-plus" aria-hidden="true"></i>添加</button><button class="btn btn-s" data-batch-test="models" onclick="testAllMdl('${p.id}')" title="依次测试当前列表中的全部模型"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部模型</button></div></fieldset>
               <div class="detail-actions"><div id="tr-${escapePageHtml(p.id)}" aria-live="polite"></div><div>${p.id === 'opencode' ? '<button class="btn btn-s" onclick="fetchEditModels(\'' + p.id + '\')"><i class="fas fa-download" aria-hidden="true"></i>获取模型</button>' : ''}<button class="btn btn-d" onclick="del('${p.id}')"><i class="fas fa-trash" aria-hidden="true"></i>删除</button><button class="btn btn-p" onclick="save('${p.id}')"><i class="fas fa-save" aria-hidden="true"></i>保存更改</button></div></div>
             </div>
@@ -524,7 +524,7 @@ function renderModelGrid(models, editId, providerId) {
       : "addMdlToForm('" + modelId + "')"
     return '<div class="mdl-item">' +
       '<i class="fas fa-cube"></i>' +
-      '<span class="fx1 cp ov" onclick="copyText(\'' + modelId + '\',this)">' + safeId + '</span>' +
+      '<span class="fx1 cp ov" data-copy="' + safeId + '">' + safeId + '</span>' +
       '<button class="btn btn-gh mdl-add-btn" onclick="' + addFn + '" title="添加到表单">+</button></div>'
   }).join('')
   return '<div class="grid-2-gap6">' + h + '</div>'
@@ -544,6 +544,12 @@ function hideMdlPanel(panelId) {
 }
 document.querySelectorAll('[data-panel-id]').forEach(function(button) {
   button.addEventListener('click', function() { hideMdlPanel(button.dataset.panelId) })
+})
+
+// 动态模型列表使用 data-copy，避免嵌套 inline onclick 引号导致整个脚本解析失败。
+document.addEventListener('click', function(event) {
+  const target = event.target.closest('[data-copy]')
+  if (target) copyText(target.getAttribute('data-copy') || '', target)
 })
 
 function testNewAKey(btn) {
@@ -579,7 +585,7 @@ function addMdlToForm(mid) {
   const c = document.getElementById('amodels')
   const d = document.createElement('div')
   d.className = 'fc mb-4 field-row'
-  d.innerHTML = '<input type="text" value="' + escapeHtml(mid) + '" class="fx1 ami" aria-label="模型 ID"><label class="tg"><input type="checkbox" checked class="ame" aria-label="启用模型"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy"></i></button><button class="icon-btn" onclick="testNewMdl(this)" title="测试模型" aria-label="测试模型"><i class="fas fa-plug" aria-hidden="true"></i></button><button class="icon-btn" onclick="this.parentElement.remove()" title="移除模型" aria-label="移除模型"><i class="fas fa-times"></i></button>'
+  d.innerHTML = '<input type="text" value="' + escapeHtml(mid) + '" class="fx1 ami" aria-label="模型 ID"><label class="tg"><input type="checkbox" checked class="ame" aria-label="启用模型"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy"></i></button><button class="icon-btn" onclick="testNewMdl(this)" title="测试模型" aria-label="测试模型"><i class="fas fa-plug"></i></button><button class="icon-btn" onclick="this.parentElement.remove()" title="移除模型" aria-label="移除模型"><i class="fas fa-times"></i></button>'
   c.appendChild(d)
 }
 
@@ -660,7 +666,7 @@ function addKeyRow(id) {
     const d = document.createElement('div')
     d.className = 'fc mb-3 field-row'
     d.dataset.kidx = String(cnt)
-    d.innerHTML = '<input type="text" value="' + escapeHtml(k) + '" class="fx1" id="k-' + escapeHtml(id) + '-' + cnt + '" placeholder="API Key"><label class="tg"><input type="checkbox" checked id="ken-' + escapeHtml(id) + '-' + cnt + '"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制 Key" aria-label="复制 Key"><i class="far fa-copy" aria-hidden="true"></i></button><button class="icon-btn" onclick="testKeyRow(\'' + id + '\',' + cnt + ')" title="测试 Key" aria-label="测试 Key"><i class="fas fa-plug" aria-hidden="true"></i></button><button class="icon-btn" onclick="rmKeyRow(\'' + id + '\',' + cnt + ')" title="移除 Key" aria-label="移除 Key"><i class="fas fa-times"></i></button>'
+    d.innerHTML = '<input type="text" value="' + escapeHtml(k) + '" class="fx1" id="k-' + escapeHtml(id) + '-' + cnt + '" placeholder="API Key"><label class="tg"><input type="checkbox" checked id="ken-' + escapeHtml(id) + '-' + cnt + '"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制 Key" aria-label="复制 Key"><i class="far fa-copy"></i></button><button class="icon-btn" onclick="testKeyRow(\'' + id + '\',' + cnt + ')" title="测试 Key" aria-label="测试 Key"><i class="fas fa-plug"></i></button><button class="icon-btn" onclick="rmKeyRow(\'' + id + '\',' + cnt + ')" title="移除 Key" aria-label="移除 Key"><i class="fas fa-times"></i></button>'
     c.appendChild(d)
   })
   inp.value = ''
@@ -773,10 +779,12 @@ function getMdl(id) {
 
 async function save(id) {
   try {
-    const nm = document.getElementById('nm-' + id).value.trim(), url = document.getElementById('url-' + id).value.trim()
+    const nm = document.getElementById('nm-' + id).value.trim()
+    const url = document.getElementById('url-' + id).value.trim()
     const apiType = document.getElementById('at-' + id).value
     const keys = getKeys(id)
-    const models = getMdl(id), enabled = document.getElementById('en-' + id).checked
+    const models = getMdl(id)
+    const enabled = document.getElementById('en-' + id).checked
     if (!nm || !url) { toast('请填写名称和 API 地址', 'error'); return }
     const r = await fetch('/admin/api/providers/' + encodeURIComponent(id), {
       method: 'PUT',
