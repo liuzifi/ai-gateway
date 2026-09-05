@@ -680,17 +680,62 @@ function getDiscoveryProviderId(panelId) {
 function addDiscoveredModelsToForm(panelId, models, mode) {
   const container = document.getElementById('amodels')
   if (!container) return 0
-  const existing = new Map(Array.from(container.querySelectorAll('.ami')).map(function(input) {
-    return [input.value.trim(), input.parentElement.querySelector('.ame')]
-  }))
-  if (mode === 'replace') container.innerHTML = ''
+  let existing = new Set(Array.from(container.querySelectorAll('.ami')).map(function(input) {
+    return input.value.trim()
+  }).filter(Boolean))
+  if (mode === 'replace') {
+    container.innerHTML = ''
+    existing = new Set()
+  }
   let added = 0
   models.forEach(function(model) {
-    const current = existing.get(model.id)
-    if (current && mode === 'new-only') return
-    if (current && mode === 'merge') return
+    if (existing.has(model.id)) return
     addMdlToForm(model.id)
+    existing.add(model.id)
     added++
+  })
+  return added
+}
+
+function nextModelIndex(container) {
+  const indexes = Array.from(container.querySelectorAll('[data-idx]')).map(function(item) {
+    return parseInt(item.dataset.idx || '-1', 10)
+  })
+  return indexes.length ? Math.max.apply(null, indexes) + 1 : 0
+}
+
+function appendModelToEdit(id, modelId) {
+  const container = document.getElementById('ml-' + id)
+  if (!container || !modelId) return false
+  const index = nextModelIndex(container)
+  const row = document.createElement('div')
+  row.className = 'fc mb-3 field-row'
+  row.dataset.idx = String(index)
+  row.innerHTML = '<input type="text" value="' + escapeHtml(modelId) + '" class="fx1" id="mid-' + escapeHtml(id) + '-' + index + '" placeholder="模型 ID"><label class="tg"><input type="checkbox" checked id="men-' + escapeHtml(id) + '-' + index + '"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy"></i></button><button class="icon-btn" id="tm-' + escapeHtml(id) + '-' + index + '" title="测试模型" aria-label="测试模型"><i class="fas fa-plug"></i></button><span class="model-test-status" id="mts-' + escapeHtml(id) + '-' + index + '" role="status" aria-live="polite"></span><button class="icon-btn" id="rm-' + escapeHtml(id) + '-' + index + '" title="移除模型" aria-label="移除模型"><i class="fas fa-times"></i></button>'
+  container.appendChild(row)
+  document.getElementById('tm-' + id + '-' + index).addEventListener('click', function() {
+    const current = document.getElementById('mid-' + id + '-' + index)
+    testMdl(id, current ? current.value : '', index)
+  })
+  document.getElementById('rm-' + id + '-' + index).addEventListener('click', function() { rmMdl(id, index) })
+  return true
+}
+
+function addDiscoveredModelsToEdit(providerId, models, mode) {
+  const container = document.getElementById('ml-' + providerId)
+  if (!container) return 0
+  let existing = new Set(getMdl(providerId).map(function(model) { return model.id }))
+  if (mode === 'replace') {
+    container.innerHTML = ''
+    existing = new Set()
+  }
+  let added = 0
+  models.forEach(function(model) {
+    if (existing.has(model.id)) return
+    if (appendModelToEdit(providerId, model.id)) {
+      existing.add(model.id)
+      added++
+    }
   })
   return added
 }
@@ -698,25 +743,12 @@ function addDiscoveredModelsToForm(panelId, models, mode) {
 async function applyModelCollection(panelId, button, models, mode, emptyMessage) {
   if (!models.length) { toast(emptyMessage, 'error'); return }
   const providerId = getDiscoveryProviderId(panelId)
-  if (!providerId) { toast('请先填写提供商 ID', 'error'); return }
   if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true') }
   try {
-    if (panelId === 'amc') {
-      const added = addDiscoveredModelsToForm(panelId, models, mode)
-      toast(added ? '已添加 ' + added + ' 个模型' : '有效模型均已存在，无需重复添加', 'success')
-      return
-    }
-    const response = await fetch('/admin/api/providers/' + encodeURIComponent(providerId) + '/models', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: mode, models: models })
-    })
-    const data = await response.json()
-    if (!data.success) { toast(data.message || '应用模型失败', 'error'); return }
-    toast('已应用 ' + ((data.data && data.data.total) || models.length) + ' 个模型', 'success')
-    if (data.data && data.data.provider) showEditModelsList(providerId, data.data.provider.models || [])
-  } catch (error) {
-    toast('应用模型请求失败', 'error')
+    const added = panelId === 'amc'
+      ? addDiscoveredModelsToForm(panelId, models, mode)
+      : addDiscoveredModelsToEdit(providerId, models, mode)
+    toast(added ? '已添加 ' + added + ' 个模型，请保存配置' : '模型均已存在，无需重复添加', 'success')
   } finally {
     if (button) { button.disabled = false; button.removeAttribute('aria-busy') }
   }
@@ -1014,8 +1046,9 @@ function showEditModelsList(id, models) {
 }
 
 function addMdlToEdit(id, mid) {
-  document.getElementById('nmid-' + id).value = mid
-  addMdl(id)
+  const existing = new Set(getMdl(id).map(function(model) { return model.id }))
+  if (existing.has(mid)) { toast('该模型已在应用模型列表中', 'error'); return }
+  if (appendModelToEdit(id, mid)) toast('已添加模型，请保存配置', 'success')
 }
 
 function getMdl(id) {
@@ -1058,18 +1091,9 @@ async function del(id) {
 function addMdl(id) {
   const inp = document.getElementById('nmid-' + id), mid = inp.value.trim()
   if (!mid) { toast('请输入模型 ID', 'error'); return }
-  const c = document.getElementById('ml-' + id), cnt = c.querySelectorAll('[data-idx]').length
-  const d = document.createElement('div')
-  d.className = 'fc mb-3 field-row'
-  d.dataset.idx = cnt
-  d.innerHTML = '<input type="text" value="' + escapeHtml(mid) + '" class="fx1" id="mid-' + escapeHtml(id) + '-' + cnt + '" placeholder="模型 ID"><label class="tg"><input type="checkbox" checked id="men-' + escapeHtml(id) + '-' + cnt + '"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy"></i></button><button class="icon-btn" id="tm-' + escapeHtml(id) + '-' + cnt + '" title="测试模型" aria-label="测试模型"><i class="fas fa-plug"></i></button><span class="model-test-status" id="mts-' + escapeHtml(id) + '-' + cnt + '" role="status" aria-live="polite"></span><button class="icon-btn" id="rm-' + escapeHtml(id) + '-' + cnt + '" title="移除模型" aria-label="移除模型"><i class="fas fa-times"></i></button>'
-  c.appendChild(d)
-  document.getElementById('tm-' + id + '-' + cnt).addEventListener('click', function() {
-    const current = document.getElementById('mid-' + id + '-' + cnt)
-    testMdl(id, current ? current.value : '', cnt)
-  })
-  document.getElementById('rm-' + id + '-' + cnt).addEventListener('click', function() { rmMdl(id, cnt) })
-  inp.value = ''
+  const existing = new Set(getMdl(id).map(function(model) { return model.id }))
+  if (existing.has(mid)) { toast('该模型已在应用模型列表中', 'error'); return }
+  if (appendModelToEdit(id, mid)) inp.value = ''
 }
 
 function rmMdl(id, idx) {
