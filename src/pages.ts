@@ -516,18 +516,22 @@ function renderModelGrid(models, editId, providerId) {
     })
   }
   if (!models || models.length === 0) return '<span class="mu">未返回模型列表</span>'
-  var h = models.map(function(m) {
+  var h = models.map(function(m, index) {
     var modelId = String(m.id || '')
     var safeId = escapeHtml(modelId)
+    var panelId = editId ? 'mel-' + editId : 'amc'
+    var statusId = panelId + '-mts-' + index
     var addFn = editId
       ? "addMdlToEdit('" + editId + "','" + modelId + "')"
       : "addMdlToForm('" + modelId + "')"
-    return '<div class="mdl-item">' +
+    return '<div class="mdl-item" data-available-model="' + safeId + '">' +
       '<i class="fas fa-cube"></i>' +
       '<span class="fx1 cp ov" data-copy="' + safeId + '">' + safeId + '</span>' +
-      '<button class="btn btn-gh mdl-add-btn" onclick="' + addFn + '" title="添加到表单">+</button></div>'
+      '<span class="model-test-status" id="' + escapeHtml(statusId) + '" role="status" aria-live="polite"></span>' +
+      '<button class="icon-btn" data-available-test="' + safeId + '" data-available-panel="' + escapeHtml(panelId) + '" title="测试模型" aria-label="测试模型"><i class="fas fa-plug" aria-hidden="true"></i></button>' +
+      '<button class="btn btn-gh mdl-add-btn" onclick="' + addFn + '" title="添加到表单" aria-label="添加 ' + safeId + '">+</button></div>'
   }).join('')
-  return '<div class="grid-2-gap6">' + h + '</div>'
+  return '<div class="mdl-list-actions"><button class="btn btn-s" data-available-batch="' + escapeHtml(editId || '') + '" data-available-panel="' + escapeHtml(editId ? 'mel-' + editId : 'amc') + '" title="测试列表中的全部模型"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部模型</button></div><div class="grid-2-gap6">' + h + '</div>'
 }
 
 // 可用模型面板 heading（添加态静态 HTML 与编辑态动态生成共用同一结构）
@@ -550,6 +554,10 @@ document.querySelectorAll('[data-panel-id]').forEach(function(button) {
 document.addEventListener('click', function(event) {
   const target = event.target.closest('[data-copy]')
   if (target) copyText(target.getAttribute('data-copy') || '', target)
+  const testButton = event.target.closest('[data-available-test]')
+  if (testButton) testAvailableModel(testButton.dataset.availablePanel || 'amc', testButton.dataset.availableTest || '', testButton)
+  const batchButton = event.target.closest('[data-available-batch]')
+  if (batchButton) testAvailableModels(batchButton.dataset.availablePanel || 'amc', batchButton)
 })
 
 function testNewAKey(btn) {
@@ -732,6 +740,70 @@ async function testAllKeys(id) {
     if (button) { button.disabled = false; button.removeAttribute('aria-busy') }
   }
   toast('API Key 测试完成：' + passed + '/' + keys.length + ' 个有效', passed === keys.length ? 'success' : 'error')
+}
+
+// 测试“可用模型”面板中的单个模型；添加态复用添加表单，编辑态复用当前 Provider 配置。
+async function testAvailableModel(panelId, modelId, button) {
+  const panel = document.getElementById(panelId)
+  const row = panel ? Array.from(panel.querySelectorAll('[data-available-model]')).find(function(item) {
+    return item.getAttribute('data-available-model') === modelId
+  }) : null
+  const status = row ? row.querySelector('.model-test-status') : null
+  const editId = panelId.indexOf('mel-') === 0 ? panelId.slice(4) : ''
+  const setStatus = function(state, message) {
+    if (!status) return
+    status.textContent = state === 'testing' ? '测试中…' : state === 'success' ? '✓ 可用' : '✕ ' + (message || '不可用')
+    status.className = 'model-test-status model-test-status--' + state
+    status.title = message || ''
+  }
+  if (!modelId) return false
+  if (button) button.disabled = true
+  setStatus('testing')
+  try {
+    let result
+    if (editId) {
+      const url = document.getElementById('url-' + editId).value.trim()
+      const apiType = document.getElementById('at-' + editId).value
+      const keys = getKeys(editId)
+      const apiKey = keys.length ? keys[0].key : ''
+      if (!url) { setStatus('error', '请先填写 API 地址'); return false }
+      result = await testModelConnection(url, apiType, apiKey, modelId, editId)
+    } else {
+      const providerId = document.getElementById('aid').value.trim()
+      const url = document.getElementById('aurl').value.trim()
+      const apiType = document.getElementById('afmt').value
+      const keys = Array.from(document.querySelectorAll('#akeys .aki')).map(function(input) { return input.value.trim() }).filter(Boolean)
+      const apiKey = keys[0] || (providerId === 'opencode' ? '' : 'dummy')
+      if (!url) { setStatus('error', '请先填写 API 地址'); return false }
+      result = await testModelConnection(url, apiType, apiKey, modelId, providerId)
+    }
+    const success = Boolean(result && result.success)
+    setStatus(success ? 'success' : 'error', success ? '' : (result.message || (result.status ? 'HTTP ' + result.status : '连接失败')))
+    return success
+  } catch (error) {
+    setStatus('error', '请求失败')
+    return false
+  } finally {
+    if (button) button.disabled = false
+  }
+}
+
+async function testAvailableModels(panelId, batchButton) {
+  const panel = document.getElementById(panelId)
+  const rows = panel ? Array.from(panel.querySelectorAll('[data-available-model]')) : []
+  if (!rows.length) { toast('当前没有可测试的可用模型', 'error'); return }
+  if (batchButton) { batchButton.disabled = true; batchButton.setAttribute('aria-busy', 'true') }
+  let passed = 0
+  try {
+    for (const row of rows) {
+      const modelId = row.getAttribute('data-available-model') || ''
+      const testButton = row.querySelector('[data-available-test]')
+      if (await testAvailableModel(panelId, modelId, testButton)) passed++
+    }
+  } finally {
+    if (batchButton) { batchButton.disabled = false; batchButton.removeAttribute('aria-busy') }
+  }
+  toast('可用模型测试完成：' + passed + '/' + rows.length + ' 个可用', passed === rows.length ? 'success' : 'error')
 }
 
 // opencode 编辑表单 — 获取模型（复用 testKeyConnection 逻辑）
