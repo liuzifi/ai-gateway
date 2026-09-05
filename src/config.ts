@@ -24,6 +24,7 @@ export const KEY_HEALTH_COOLDOWN_MS = 5 * 60 * 1000
 export const KEY_HEALTH_MAX_FAILURES = 5
 
 export const KV_KEYS = {
+  METRICS: 'metrics:rolling:v1',
   PROVIDERS: 'providers',
   PROXY_KEYS: 'proxy:keys',
   SESSION_PREFIX: 'admin:session:',

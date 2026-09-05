@@ -3,6 +3,7 @@ import { getProvider, getProviders } from './storage'
 import { KV_KEYS, KEY_HEALTH_COOLDOWN_MS, KEY_HEALTH_MAX_FAILURES } from './config'
 import type { Env, ProxyRequestBody } from './types'
 import { isOpenCodeProvider, proxyOpenCodeRequest, resolveOpenCodeUrls } from './opencode'
+import { recordRequestMetric, recordUpstreamMetric } from './metrics'
 
 // ===== Key 健康状态类型和辅助函数 =====
 
@@ -105,12 +106,24 @@ export async function testModelConnection(
 
 /** 处理 /v1/chat/completions 等 API 转发 */
 export async function handleProxy(c: Context<{ Bindings: Env }>) {
+  const startedAt = Date.now()
+  let metricProviderId: string | undefined
+  let metricModelId: string | undefined
+  const finish = (response: Response) => {
+    void recordRequestMetric(c.env, {
+      providerId: metricProviderId,
+      modelId: metricModelId,
+      status: response.status,
+      latencyMs: Date.now() - startedAt,
+    })
+    return response
+  }
   try {
     const body = await c.req.json<ProxyRequestBody>()
     const model = body.model
 
     if (!model) {
-      return c.json({ error: { message: '缺少 model 参数', type: 'invalid_request_error' } }, 400)
+      return finish(c.json({ error: { message: '缺少 model 参数', type: 'invalid_request_error' } }, 400))
     }
 
     const parsed = parseModelId(model)
@@ -124,30 +137,32 @@ export async function handleProxy(c: Context<{ Bindings: Env }>) {
     }
 
     const { providerId, modelId } = parsed
+    metricProviderId = providerId
+    metricModelId = modelId
     const provider = await getProvider(c.env, providerId)
 
     if (!provider) {
-      return c.json({
+      return finish(c.json({
         error: { message: `提供商 "${providerId}" 不存在`, type: 'invalid_request_error' },
-      }, 404)
+      }, 404))
     }
 
     if (!provider.enabled) {
-      return c.json({
+      return finish(c.json({
         error: { message: `提供商 "${provider.name}" 已禁用`, type: 'provider_disabled' },
-      }, 403)
+      }, 403))
     }
 
     const modelConfig = provider.models.find((m) => m.id === modelId)
     if (!modelConfig) {
-      return c.json({
+      return finish(c.json({
         error: { message: `模型 "${modelId}" 未在提供商 "${provider.name}" 中配置`, type: 'invalid_request_error' },
-      }, 404)
+      }, 404))
     }
     if (!modelConfig.enabled) {
-      return c.json({
+      return finish(c.json({
         error: { message: `模型 "${modelId}" 已禁用`, type: 'model_disabled' },
-      }, 403)
+      }, 403))
     }
 
     const enabledKeys = provider.apiKeys.filter(k => k.enabled)
@@ -165,17 +180,17 @@ export async function handleProxy(c: Context<{ Bindings: Env }>) {
         body: JSON.stringify(forwardBody),
         mirrorUrls: resolveOpenCodeUrls(c.env),
       })
-      return new Response(response.body, {
+      return finish(new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-      })
+      }))
     }
 
     if (enabledKeys.length === 0) {
-      return c.json({
+      return finish(c.json({
         error: { message: `提供商 "${provider.name}" 未配置可用的 API Key`, type: 'configuration_error' },
-      }, 500)
+      }, 500))
     }
 
     const cleanBase = provider.baseUrl.replace(/\/$/, '')
@@ -265,14 +280,16 @@ export async function handleProxy(c: Context<{ Bindings: Env }>) {
             'Content-Type': response.headers.get('Content-Type') || 'application/json',
             'Cache-Control': 'no-store',
           }
-          return new Response(response.body, {
+          void recordUpstreamMetric(c.env, { providerId, modelId, keyIndex, status: response.status, failed: false })
+          return finish(new Response(response.body, {
             status: response.status,
             headers: responseHeaders,
-          })
+          }))
         }
 
         // 429 限流：跳过当前 key，不标记失败
         if (response.status === 429) {
+          void recordUpstreamMetric(c.env, { providerId, modelId, keyIndex, status: response.status, failed: true })
           lastError = response
           continue
         }
@@ -287,13 +304,14 @@ export async function handleProxy(c: Context<{ Bindings: Env }>) {
           }
           healthData[apiKey] = h
           healthUpdated = true
+          void recordUpstreamMetric(c.env, { providerId, modelId, keyIndex, status: response.status, failed: true })
           lastError = response
           continue
         }
 
         // 其他错误（400/404 等）直接返回
         const errorData = await response.json().catch(async () => ({ error: { message: await response.text() } }))
-        return c.json(errorData, response.status as Parameters<typeof c.json>[1])
+        return finish(c.json(errorData, response.status as Parameters<typeof c.json>[1]))
       } catch (err) {
         const error = err as Error
         // 网络错误也标记为失败
@@ -305,6 +323,7 @@ export async function handleProxy(c: Context<{ Bindings: Env }>) {
         }
         healthData[apiKey] = h
         healthUpdated = true
+        void recordUpstreamMetric(c.env, { providerId, modelId, keyIndex, status: 502, failed: true })
         lastError = new Response(JSON.stringify({
           error: { message: error.message || '请求失败', type: 'proxy_error' },
         }), { status: 502 })
@@ -318,23 +337,23 @@ export async function handleProxy(c: Context<{ Bindings: Env }>) {
     // 所有 key 均失败
     if (lastError) {
       const errorBody = await lastError.text().catch(() => '所有 API Key 均失败')
-      return c.json({
+      return finish(c.json({
         error: {
           message: `所有 API Key 已用完，最后一次错误: HTTP ${lastError.status}`,
           type: 'key_exhausted',
           detail: errorBody.substring(0, 500),
         },
-      }, (lastError.status || 502) as Parameters<typeof c.json>[1])
+      }, (lastError.status || 502) as Parameters<typeof c.json>[1]))
     }
 
-    return c.json({
+    return finish(c.json({
       error: { message: '没有可用的 API Key', type: 'configuration_error' },
-    }, 500)
+    }, 500))
   } catch (err) {
     const error = err as Error
-    return c.json({
+    return finish(c.json({
       error: { message: error.message || '代理转发内部错误', type: 'server_error' },
-    }, 500)
+    }, 500))
   }
 }
 

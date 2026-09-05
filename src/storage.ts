@@ -1,6 +1,22 @@
 import { KV_KEYS } from './config'
 import type { Env, Provider, ProxyKey, Session } from './types'
 
+const providerUpdateLocks = new WeakMap<object, Promise<void>>()
+
+async function withProviderUpdateLock<T>(env: Env, operation: () => Promise<T>): Promise<T> {
+  const previous = providerUpdateLocks.get(env)
+  let release!: () => void
+  const current = new Promise<void>((resolve) => { release = resolve })
+  providerUpdateLocks.set(env, current)
+  if (previous) await previous
+  try {
+    return await operation()
+  } finally {
+    release()
+    if (providerUpdateLocks.get(env) === current) providerUpdateLocks.delete(env)
+  }
+}
+
 // ===== 提供商 CRUD =====
 
 export async function getProviders(env: Env): Promise<Provider[]> {
@@ -24,12 +40,14 @@ export async function addProvider(env: Env, provider: Provider): Promise<void> {
 }
 
 export async function updateProvider(env: Env, id: string, updates: Partial<Provider>): Promise<Provider | null> {
-  const providers = await getProviders(env)
-  const index = providers.findIndex((p) => p.id === id)
-  if (index === -1) return null
-  providers[index] = { ...providers[index], ...updates, updatedAt: new Date().toISOString() }
-  await setProviders(env, providers)
-  return providers[index]
+  return withProviderUpdateLock(env, async () => {
+    const providers = await getProviders(env)
+    const index = providers.findIndex((p) => p.id === id)
+    if (index === -1) return null
+    providers[index] = { ...providers[index], ...updates, updatedAt: new Date().toISOString() }
+    await setProviders(env, providers)
+    return providers[index]
+  })
 }
 
 export async function deleteProvider(env: Env, id: string): Promise<boolean> {

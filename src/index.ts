@@ -6,13 +6,17 @@ import { adminAuthMiddleware, proxyKeyAuthMiddleware, handleLogin, handleLogout 
 import { handleProxy, handleModels } from './proxy'
 import {
   handleStatus,
+  handleMetrics,
   handleGetProviders,
   handleCreateProvider,
   handleUpdateProvider,
   handleDeleteProvider,
   handleTestModel,
+  handleDiscoverProviderModels,
+  handleApplyProviderModels,
   handleTestKeyNew,
   handleTestModelNew,
+  handleBulkOperations,
   handleGetProxyKeys,
   handleCreateProxyKey,
   handleUpdateProxyKey,
@@ -61,15 +65,21 @@ app.get('/admin', async (c) => renderAdminPage(c))
 
 // 系统状态
 app.get('/admin/api/status', handleStatus)
+app.get('/admin/api/metrics', handleMetrics)
 
 // 提供商 CRUD
 app.get('/admin/api/providers', handleGetProviders)
 app.post('/admin/api/providers', handleCreateProvider)
 app.put('/admin/api/providers/:id', handleUpdateProvider)
 app.delete('/admin/api/providers/:id', handleDeleteProvider)
+app.get('/admin/api/providers/:id/models', handleDiscoverProviderModels)
+app.put('/admin/api/providers/:id/models', handleApplyProviderModels)
 app.post('/admin/api/providers/:id/test-model', handleTestModel)
 app.post('/admin/api/test-key', handleTestKeyNew)
 app.post('/admin/api/test-model', handleTestModelNew)
+
+// 批量操作（提供商启停、模型启停/删除、只保留可用项）
+app.post('/admin/api/providers/bulk', handleBulkOperations)
 
 // 转发 Key 管理
 app.get('/admin/api/proxy-keys', handleGetProxyKeys)

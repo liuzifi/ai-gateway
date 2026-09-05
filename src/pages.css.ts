@@ -359,6 +359,10 @@ label, legend { color: var(--color-ink-2); font-size: var(--text-xs); font-weigh
 .mdl-item .fx1 { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .mdl-item i:first-child { color: var(--color-muted); }
 .mdl-add-btn { flex-shrink: 0; width: var(--control-h-sm); min-height: 0; font-size: var(--text-md); line-height: 2; }
+.model-test-status, .key-test-status { min-width: 0; max-width: 14rem; overflow: hidden; color: var(--color-muted); font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
+.model-test-status--testing, .key-test-status--testing { color: var(--color-focus); }
+.model-test-status--success, .key-test-status--success { color: var(--color-success-ink); font-weight: 600; }
+.model-test-status--error, .key-test-status--error { color: var(--color-danger-ink); }
 .grid-2-gap6 { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2xs); }
 @keyframes modal-in { from { opacity: 0; transform: translateY(var(--space-xs)); } to { opacity: 1; transform: none; } }
 
@@ -477,6 +481,7 @@ label, legend { color: var(--color-ink-2); font-size: var(--text-xs); font-weigh
   .ps > .fc { flex-direction: column; align-items: flex-end; }
   .field-row { flex-wrap: wrap; }
   .field-row input { flex-basis: calc(100% - 3.5rem); }
+  .model-test-status, .key-test-status { flex: 1 1 100%; max-width: none; margin-inline-start: calc(var(--space-2xs) + 2.5rem); }
   .field-row .btn { flex: 1; }
   .admin-topbar .brand__name { display: none; }
   .admin-heading__actions .btn { flex: 1; }

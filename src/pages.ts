@@ -317,6 +317,7 @@ ${H('管理')}
       <a class="admin-nav__link is-active" href="#overview"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>概览</span></a>
       <a class="admin-nav__link" href="#providers"><i class="fas fa-server" aria-hidden="true"></i><span>提供商</span><b>${providers.length}</b></a>
       <a class="admin-nav__link" href="#proxy-keys"><i class="fas fa-key" aria-hidden="true"></i><span>转发 Key</span><b>${proxyKeys.length}</b></a>
+      <a class="admin-nav__link" href="#runtime"><i class="fas fa-heartbeat" aria-hidden="true"></i><span>运行状态</span></a>
     </nav>
     <div class="admin-rail__foot">
       <a href="/" class="admin-nav__link"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>返回首页</span></a>
@@ -327,7 +328,7 @@ ${H('管理')}
   <div class="admin-main">
     <header class="admin-topbar">
       <a class="brand" href="/"><span class="brand__mark" aria-hidden="true"><i class="fas fa-cloud"></i></span><span class="brand__name">${SITE_CONFIG.title}</span></a>
-      <nav aria-label="移动端控制台导航"><a href="#overview">概览</a><a href="#providers">提供商</a><a href="#proxy-keys">Key</a></nav>
+      <nav aria-label="移动端控制台导航"><a href="#overview">概览</a><a href="#providers">提供商</a><a href="#proxy-keys">Key</a><a href="#runtime">运行状态</a></nav>
       <a class="icon-btn" href="/admin/logout" aria-label="退出登录"><i class="fas fa-sign-out-alt" aria-hidden="true"></i></a>
     </header>
 
@@ -347,10 +348,19 @@ ${H('管理')}
         </div>
       </section>
 
+      <section id="runtime" class="workspace-section" aria-labelledby="runtime-title">
+        <div class="section-heading section-heading--admin"><div><h2 id="runtime-title">运行状态</h2><p>最近 24 小时请求指标，数据按滚动窗口聚合。</p></div><button class="btn btn-s" data-metrics-refresh><i class="fas fa-sync-alt" aria-hidden="true"></i>刷新</button></div>
+        <div class="admin-metrics" data-metrics-summary aria-live="polite"><div><span data-metric="requests">—</span><p>请求数</p><small data-metric="successRate">成功率 —</small></div><div><span data-metric="p50LatencyMs">—</span><p>P50 延迟</p><small>毫秒</small></div><div><span data-metric="p95LatencyMs">—</span><p>P95 延迟</p><small>毫秒</small></div><div><span data-metric="keySwitches">—</span><p>Key 切换</p><small>429/401/403/5xx</small></div></div>
+        <div class="af-w mt-1"><div class="add-form-panel"><h3>状态码分类</h3><div class="pu" data-metric-status>加载中…</div></div><div class="add-form-panel"><h3>失败排行</h3><div class="pu" data-metric-failures>加载中…</div></div></div>
+      </section>
+
       <section id="providers" class="workspace-section" aria-labelledby="providers-title">
         <div class="section-heading section-heading--admin">
           <div><h2 id="providers-title">提供商</h2><p>管理上游地址、协议、API Key 和模型。</p></div>
           <button class="btn btn-p" onclick="showAdd()"><i class="fas fa-plus" aria-hidden="true"></i>添加提供商</button>
+        </div>
+        <div class="panel-actions mb-4" aria-label="批量操作">
+          <div><label class="fc"><input type="checkbox" data-bulk-select-all aria-label="选择全部提供商"><span>全选提供商</span></label><button class="btn btn-s" data-bulk-action="enable-providers">批量启用 Provider</button><button class="btn btn-s" data-bulk-action="disable-providers">批量禁用 Provider</button><button class="btn btn-s" data-bulk-action="test-all">测试全部 Key 和模型</button><button class="btn btn-d" data-bulk-action="prune-invalid">只保留可用项</button></div>
         </div>
 
         <div class="af-w">
@@ -375,15 +385,15 @@ ${H('管理')}
           <article class="pi" data-id="${escapePageHtml(p.id)}">
             <div class="ps" onclick="tog('${p.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();tog('${p.id}')}" aria-controls="dt-${escapePageHtml(p.id)}">
               <div class="l"><i class="fas fa-chevron-right provider-chevron" aria-hidden="true" id="ch-${escapePageHtml(p.id)}"></i><span class="provider-avatar" aria-hidden="true">${escapePageHtml(p.name.charAt(0).toUpperCase() || 'A')}</span><div><h3>${escapePageHtml(p.name)}</h3><div class="pu"><code>${escapePageHtml(p.id)}</code><span>${(p.apiType||'openai')==='anthropic'?'Anthropic':'OpenAI'}</span><span>${p.apiKeys.length} Keys</span><span>${p.models.length} 模型</span></div></div></div>
-              <div class="fc fx-s0" onclick="event.stopPropagation()"><label class="tg"><input type="checkbox" ${p.enabled?'checked':''} id="en-${escapePageHtml(p.id)}" onchange="togglePb('${p.id}',this.checked)" aria-label="启用 ${escapePageHtml(p.name)}"><span class="sl"></span></label><span class="bd ${p.enabled?'bd-on':'bd-off'}">${p.enabled?'已启用':'未启用'}</span></div>
+              <div class="fc fx-s0" onclick="event.stopPropagation()"><label class="fc" title="选择 Provider"><input type="checkbox" data-bulk-provider="${escapePageHtml(p.id)}" aria-label="选择 ${escapePageHtml(p.name)}"></label><label class="tg"><input type="checkbox" ${p.enabled?'checked':''} id="en-${escapePageHtml(p.id)}" onchange="togglePb('${p.id}',this.checked)" aria-label="启用 ${escapePageHtml(p.name)}"><span class="sl"></span></label><span class="bd ${p.enabled?'bd-on':'bd-off'}">${p.enabled?'已启用':'未启用'}</span></div>
             </div>
             <div class="pd" id="dt-${escapePageHtml(p.id)}">
               <div class="detail-heading"><div><h3>编辑 ${escapePageHtml(p.name)}</h3><p>保存后，新配置会用于后续转发请求。</p></div><span class="protocol-chip">${(p.apiType||'openai')==='anthropic'?'ANTHROPIC':'OPENAI'}</span></div>
               <div class="fr"><div class="fg"><label>名称</label><input type="text" id="nm-${escapePageHtml(p.id)}" value="${escapePageHtml(p.name)}"></div><div class="fg"><label>ID</label><input type="text" value="${escapePageHtml(p.id)}" disabled></div></div>
               <div class="fg"><label>API 地址</label><input type="url" id="url-${escapePageHtml(p.id)}" value="${escapePageHtml(p.baseUrl)}"></div>
               <div class="fg"><label>API 格式</label><select id="at-${escapePageHtml(p.id)}" class="select-sm"><option value="openai" ${(p.apiType||'openai')==='openai'?'selected':''}>OpenAI 兼容</option><option value="anthropic" ${p.apiType==='anthropic'?'selected':''}>Anthropic 兼容</option></select></div>
-              <fieldset class="form-group"><legend>上游 API Keys</legend><p class="form-helper">支持用英文逗号、中文逗号、空格或换行批量添加，保存时自动去重；可按顺序逐个测试。</p><div id="keys-${escapePageHtml(p.id)}">${p.apiKeys.map((k, ki)=>`<div class="fc mb-3 field-row" data-kidx="${ki}"><input type="text" value="${escapePageHtml(k.key)}" class="fx1" id="k-${escapePageHtml(p.id)}-${ki}" placeholder="API Key" aria-label="API Key"><label class="tg"><input type="checkbox" ${k.enabled?'checked':''} id="ken-${escapePageHtml(p.id)}-${ki}" aria-label="启用 Key"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制 Key" aria-label="复制 Key"><i class="far fa-copy" aria-hidden="true"></i></button><button class="icon-btn" onclick="testKeyRow('${p.id}',${ki})" title="测试 Key" aria-label="测试 Key"><i class="fas fa-plug" aria-hidden="true"></i></button><span class="key-test-status" id="kts-${escapePageHtml(p.id)}-${ki}" role="status" aria-live="polite"></span><button class="icon-btn" onclick="rmKeyRow('${p.id}',${ki})" title="移除 Key" aria-label="移除 Key"><i class="fas fa-times" aria-hidden="true"></i></button></div>`).join('')}</div><div class="fc mt-1 field-row"><input type="text" id="nk-${escapePageHtml(p.id)}" placeholder="新的 API Key，可批量粘贴" class="fx1"><button class="btn btn-s" onclick="addKeyRow('${p.id}')"><i class="fas fa-plus" aria-hidden="true"></i>添加</button><button class="btn btn-s" data-batch-test="keys" onclick="testAllKeys('${p.id}')" title="依次测试当前列表中的全部 Key"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部 Key</button></div></fieldset>
-              <fieldset class="form-group"><legend>模型</legend><div id="ml-${escapePageHtml(p.id)}">${p.models.map((m,mi)=>`<div class="fc mb-3 field-row" data-idx="${mi}"><input type="text" value="${escapePageHtml(m.id)}" class="fx1" id="mid-${escapePageHtml(p.id)}-${mi}" placeholder="模型 ID"><label class="tg"><input type="checkbox" ${m.enabled?'checked':''} id="men-${escapePageHtml(p.id)}-${mi}" aria-label="启用模型"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy" aria-hidden="true"></i></button><button class="icon-btn" onclick="testMdl('${p.id}','${m.id}',${mi})" title="测试模型" aria-label="测试模型"><i class="fas fa-plug" aria-hidden="true"></i></button><span class="model-test-status" id="mts-${escapePageHtml(p.id)}-${mi}" role="status" aria-live="polite"></span><button class="icon-btn" onclick="rmMdl('${p.id}',${mi})" title="移除模型" aria-label="移除模型"><i class="fas fa-times" aria-hidden="true"></i></button></div>`).join('')}</div><div class="fc mt-1 field-row"><input type="text" id="nmid-${escapePageHtml(p.id)}" placeholder="新的模型 ID" class="fx1"><button class="btn btn-s" onclick="addMdl('${p.id}')"><i class="fas fa-plus" aria-hidden="true"></i>添加</button><button class="btn btn-s" data-batch-test="models" onclick="testAllMdl('${p.id}')" title="依次测试当前列表中的全部模型"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部模型</button></div></fieldset>
+              <fieldset class="form-group"><legend>上游 API Keys</legend><p class="form-helper">支持用英文逗号、中文逗号、空格或换行批量添加，保存时自动去重；可按顺序逐个测试。</p><div id="keys-${escapePageHtml(p.id)}">${p.apiKeys.map((k, ki)=>`<div class="fc mb-3 field-row" data-kidx="${ki}"><input type="text" value="${escapePageHtml(k.key)}" class="fx1" id="k-${escapePageHtml(p.id)}-${ki}" placeholder="API Key" aria-label="API Key"><label class="fc" title="选择 Key"><input type="checkbox" data-bulk-key="${escapePageHtml(p.id)}:${ki}" aria-label="选择此 API Key"></label><label class="tg"><input type="checkbox" ${k.enabled?'checked':''} id="ken-${escapePageHtml(p.id)}-${ki}" aria-label="启用 Key"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制 Key" aria-label="复制 Key"><i class="far fa-copy" aria-hidden="true"></i></button><button class="icon-btn" onclick="testKeyRow('${p.id}',${ki})" title="测试 Key" aria-label="测试 Key"><i class="fas fa-plug" aria-hidden="true"></i></button><span class="key-test-status" id="kts-${escapePageHtml(p.id)}-${ki}" role="status" aria-live="polite"></span><button class="icon-btn" onclick="rmKeyRow('${p.id}',${ki})" title="移除 Key" aria-label="移除 Key"><i class="fas fa-times" aria-hidden="true"></i></button></div>`).join('')}</div><div class="fc mt-1 field-row"><input type="text" id="nk-${escapePageHtml(p.id)}" placeholder="新的 API Key，可批量粘贴" class="fx1"><button class="btn btn-s" onclick="addKeyRow('${p.id}')"><i class="fas fa-plus" aria-hidden="true"></i>添加</button><button class="btn btn-s" data-batch-test="keys" onclick="testAllKeys('${p.id}')" title="依次测试当前列表中的全部 Key"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部 Key</button></div></fieldset>
+              <fieldset class="form-group"><legend>模型</legend><div id="ml-${escapePageHtml(p.id)}">${p.models.map((m,mi)=>`<div class="fc mb-3 field-row" data-idx="${mi}"><input type="text" value="${escapePageHtml(m.id)}" class="fx1" id="mid-${escapePageHtml(p.id)}-${mi}" placeholder="模型 ID"><label class="fc" title="选择模型"><input type="checkbox" data-bulk-model="${escapePageHtml(p.id)}:${mi}" aria-label="选择此模型"></label><label class="tg"><input type="checkbox" ${m.enabled?'checked':''} id="men-${escapePageHtml(p.id)}-${mi}" aria-label="启用模型"><span class="sl"></span></label><button class="icon-btn" onclick="copyRowVal(this)" title="复制模型 ID" aria-label="复制模型 ID"><i class="far fa-copy" aria-hidden="true"></i></button><button class="icon-btn" onclick="testMdl('${p.id}','${m.id}',${mi})" title="测试模型" aria-label="测试模型"><i class="fas fa-plug" aria-hidden="true"></i></button><span class="model-test-status" id="mts-${escapePageHtml(p.id)}-${mi}" role="status" aria-live="polite"></span><button class="icon-btn" onclick="rmMdl('${p.id}',${mi})" title="移除模型" aria-label="移除模型"><i class="fas fa-times" aria-hidden="true"></i></button></div>`).join('')}</div><div class="fc mt-1 field-row"><input type="text" id="nmid-${escapePageHtml(p.id)}" placeholder="新的模型 ID" class="fx1"><button class="btn btn-s" onclick="addMdl('${p.id}')"><i class="fas fa-plus" aria-hidden="true"></i>添加</button><button class="btn btn-s" data-batch-test="models" onclick="testAllMdl('${p.id}')" title="依次测试当前列表中的全部模型"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部模型</button><button class="btn btn-s" data-bulk-action="enable-models" data-bulk-provider-id="${escapePageHtml(p.id)}">启用所选</button><button class="btn btn-s" data-bulk-action="disable-models" data-bulk-provider-id="${escapePageHtml(p.id)}">禁用所选</button><button class="btn btn-d" data-bulk-action="delete-models" data-bulk-provider-id="${escapePageHtml(p.id)}">删除所选</button></div></fieldset>
               <div class="detail-actions"><div id="tr-${escapePageHtml(p.id)}" aria-live="polite"></div><div>${p.id === 'opencode' ? '<button class="btn btn-s" onclick="fetchEditModels(\'' + p.id + '\')"><i class="fas fa-download" aria-hidden="true"></i>获取模型</button>' : ''}<button class="btn btn-d" onclick="del('${p.id}')"><i class="fas fa-trash" aria-hidden="true"></i>删除</button><button class="btn btn-p" onclick="save('${p.id}')"><i class="fas fa-save" aria-hidden="true"></i>保存更改</button></div></div>
             </div>
           </article>`).join('') : `<div class="empty-state"><i class="fas fa-server" aria-hidden="true"></i><h3>还没有提供商</h3><p>添加第一个上游提供商，配置 API 地址、Key 和模型。</p><button class="btn btn-p" onclick="showAdd()">添加提供商</button></div>`}
@@ -510,28 +520,28 @@ function appendAKeyRow(value) {
 }
 
 function renderModelGrid(models, editId, providerId) {
-  if (providerId === 'opencode') {
-    models = (models || []).filter(function(m) {
-      return m && typeof m.id === 'string' && /^[A-Za-z0-9._:/-]+$/.test(m.id) && (m.id === 'big-pickle' || m.id.endsWith('-free'))
-    })
-  }
   if (!models || models.length === 0) return '<span class="mu">未返回模型列表</span>'
+  var panelId = editId ? 'mel-' + editId : 'amc'
   var h = models.map(function(m, index) {
-    var modelId = String(m.id || '')
+    var modelId = String(m && m.id || '')
     var safeId = escapeHtml(modelId)
-    var panelId = editId ? 'mel-' + editId : 'amc'
     var statusId = panelId + '-mts-' + index
     var addFn = editId
-      ? "addMdlToEdit('" + editId + "','" + modelId + "')"
-      : "addMdlToForm('" + modelId + "')"
-    return '<div class="mdl-item" data-available-model="' + safeId + '">' +
-      '<i class="fas fa-cube"></i>' +
+      ? "addMdlToEdit('" + editId + "','" + modelId.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'") + "')"
+      : "addMdlToForm('" + modelId.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'") + "')"
+    return '<div class="mdl-item" data-available-model="' + safeId + '" data-model-name="' + escapeHtml(modelId.toLowerCase()) + '">' +
+      '<input type="checkbox" class="model-discovery-check" data-model-discovery-check="' + escapeHtml(panelId) + '" aria-label="选择 ' + safeId + '">' +
+      '<i class="fas fa-cube" aria-hidden="true"></i>' +
       '<span class="fx1 cp ov" data-copy="' + safeId + '">' + safeId + '</span>' +
       '<span class="model-test-status" id="' + escapeHtml(statusId) + '" role="status" aria-live="polite"></span>' +
       '<button class="icon-btn" data-available-test="' + safeId + '" data-available-panel="' + escapeHtml(panelId) + '" title="测试模型" aria-label="测试模型"><i class="fas fa-plug" aria-hidden="true"></i></button>' +
       '<button class="btn btn-gh mdl-add-btn" onclick="' + addFn + '" title="添加到表单" aria-label="添加 ' + safeId + '">+</button></div>'
   }).join('')
-  return '<div class="mdl-list-actions"><button class="btn btn-s" data-available-batch="' + escapeHtml(editId || '') + '" data-available-panel="' + escapeHtml(editId ? 'mel-' + editId : 'amc') + '" title="测试列表中的全部模型"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部模型</button></div><div class="grid-2-gap6">' + h + '</div>'
+  return '<div class="mdl-list-actions">' +
+    '<div class="fc"><input class="fx1" type="search" data-model-discovery-search="' + escapeHtml(panelId) + '" placeholder="搜索模型名称" aria-label="搜索模型名称"><select class="select-sm" data-model-discovery-sort="' + escapeHtml(panelId) + '" aria-label="模型排序"><option value="name-asc">名称 A-Z</option><option value="name-desc">名称 Z-A</option></select></div>' +
+    '<div class="fc mt-1"><select class="select-sm" data-model-discovery-filter="' + escapeHtml(panelId) + '" aria-label="模型过滤"><option value="all">全部模型</option><option value="free">免费模型</option><option value="selected">已选择模型</option></select><button class="btn btn-s" data-model-discovery-select="' + escapeHtml(panelId) + '" data-select-mode="all">全选</button><button class="btn btn-s" data-model-discovery-select="' + escapeHtml(panelId) + '" data-select-mode="none">清空</button><button class="btn btn-s" data-available-batch="' + escapeHtml(editId || '') + '" data-available-panel="' + escapeHtml(panelId) + '" title="测试列表中的全部模型"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部模型</button></div>' +
+    '<div class="fc mt-1"><select class="select-sm" data-model-discovery-mode="' + escapeHtml(panelId) + '" aria-label="模型应用方式"><option value="new-only">仅添加新模型</option><option value="replace">覆盖现有模型</option><option value="merge">合并并保持原启用状态</option></select><button class="btn btn-p" data-model-discovery-apply="' + escapeHtml(panelId) + '"><i class="fas fa-plus-circle" aria-hidden="true"></i>应用已选模型</button><span class="form-helper" data-model-discovery-count="' + escapeHtml(panelId) + '" role="status" aria-live="polite">已选 0 个</span></div>' +
+    '</div><div class="grid-2-gap6" data-model-discovery-grid="' + escapeHtml(panelId) + '">' + h + '</div>'
 }
 
 // 可用模型面板 heading（添加态静态 HTML 与编辑态动态生成共用同一结构）
@@ -558,7 +568,141 @@ document.addEventListener('click', function(event) {
   if (testButton) testAvailableModel(testButton.dataset.availablePanel || 'amc', testButton.dataset.availableTest || '', testButton)
   const batchButton = event.target.closest('[data-available-batch]')
   if (batchButton) testAvailableModels(batchButton.dataset.availablePanel || 'amc', batchButton)
+  const metricsRefresh = event.target.closest('[data-metrics-refresh]')
+  if (metricsRefresh) loadRuntimeMetrics(metricsRefresh)
+  const bulkAction = event.target.closest('[data-bulk-action]')
+  if (bulkAction) handleBulkAction(bulkAction.dataset.bulkAction || '', bulkAction)
+  const selectButton = event.target.closest('[data-model-discovery-select]')
+  if (selectButton) setDiscoverySelection(selectButton.dataset.modelDiscoverySelect || '', selectButton.dataset.selectMode || 'none')
+  const applyButton = event.target.closest('[data-model-discovery-apply]')
+  if (applyButton) applyDiscoveredModels(applyButton.dataset.modelDiscoveryApply || '', applyButton)
 })
+
+document.addEventListener('input', function(event) {
+  const search = event.target.closest('[data-model-discovery-search]')
+  if (search) filterDiscoveryModels(search.dataset.modelDiscoverySearch || '')
+})
+document.addEventListener('change', function(event) {
+  const control = event.target.closest('[data-model-discovery-sort], [data-model-discovery-filter]')
+  if (control) filterDiscoveryModels(control.dataset.modelDiscoverySort || control.dataset.modelDiscoveryFilter || '')
+  const check = event.target.closest('[data-model-discovery-check]')
+  if (check) updateDiscoveryCount(check.dataset.modelDiscoveryCheck || '')
+  const selectAll = event.target.closest('[data-bulk-select-all]')
+  if (selectAll) document.querySelectorAll('[data-bulk-provider]').forEach(function (item) { item.checked = selectAll.checked })
+})
+
+function discoveryPanel(panelId) {
+  return document.getElementById(panelId)
+}
+
+function updateDiscoveryCount(panelId) {
+  const panel = discoveryPanel(panelId)
+  if (!panel) return
+  const checks = panel.querySelectorAll('[data-model-discovery-check]')
+  const selected = Array.from(checks).filter(function(check) { return check.checked }).length
+  const count = panel.querySelector('[data-model-discovery-count]')
+  if (count) count.textContent = '已选 ' + selected + ' 个'
+}
+
+function setDiscoverySelection(panelId, mode) {
+  const panel = discoveryPanel(panelId)
+  if (!panel) return
+  panel.querySelectorAll('[data-model-discovery-check]').forEach(function(check) {
+    check.checked = mode === 'all'
+  })
+  updateDiscoveryCount(panelId)
+}
+
+function filterDiscoveryModels(panelId) {
+  const panel = discoveryPanel(panelId)
+  if (!panel) return
+  const search = panel.querySelector('[data-model-discovery-search]')
+  const sort = panel.querySelector('[data-model-discovery-sort]')
+  const filter = panel.querySelector('[data-model-discovery-filter]')
+  const query = (search ? search.value : '').trim().toLowerCase()
+  const filterMode = filter ? filter.value : 'all'
+  const grid = panel.querySelector('[data-model-discovery-grid]')
+  if (!grid) return
+  const rows = Array.from(grid.querySelectorAll('[data-available-model]'))
+  rows.sort(function(a, b) {
+    const left = a.dataset.modelName || ''
+    const right = b.dataset.modelName || ''
+    const result = left.localeCompare(right)
+    return sort && sort.value === 'name-desc' ? -result : result
+  })
+  rows.forEach(function(row) {
+    const name = row.dataset.modelName || ''
+    const checked = row.querySelector('[data-model-discovery-check]')?.checked
+    const matchesSearch = !query || name.indexOf(query) !== -1
+    const matchesFilter = filterMode === 'all' || (filterMode === 'free' && /(^|[-/:])free$/.test(name)) || (filterMode === 'selected' && checked)
+    row.classList.toggle('hd', !(matchesSearch && matchesFilter))
+    grid.appendChild(row)
+  })
+  updateDiscoveryCount(panelId)
+}
+
+function selectedDiscoveryModels(panelId) {
+  const panel = discoveryPanel(panelId)
+  if (!panel) return []
+  return Array.from(panel.querySelectorAll('[data-model-discovery-check]:checked')).map(function(check) {
+    const row = check.closest('[data-available-model]')
+    return row ? { id: row.getAttribute('data-available-model') || '', enabled: true } : null
+  }).filter(Boolean)
+}
+
+function getDiscoveryProviderId(panelId) {
+  if (panelId.indexOf('mel-') === 0) return panelId.slice(4)
+  const input = document.getElementById('aid')
+  return input ? input.value.trim() : ''
+}
+
+function addDiscoveredModelsToForm(panelId, models, mode) {
+  const container = document.getElementById('amodels')
+  if (!container) return 0
+  const existing = new Map(Array.from(container.querySelectorAll('.ami')).map(function(input) {
+    return [input.value.trim(), input.parentElement.querySelector('.ame')]
+  }))
+  if (mode === 'replace') container.innerHTML = ''
+  let added = 0
+  models.forEach(function(model) {
+    const current = existing.get(model.id)
+    if (current && mode === 'new-only') return
+    if (current && mode === 'merge') return
+    addMdlToForm(model.id)
+    added++
+  })
+  return added
+}
+
+async function applyDiscoveredModels(panelId, button) {
+  const models = selectedDiscoveryModels(panelId)
+  if (!models.length) { toast('请先选择模型', 'error'); return }
+  const modeSelect = discoveryPanel(panelId)?.querySelector('[data-model-discovery-mode]')
+  const mode = modeSelect ? modeSelect.value : 'new-only'
+  const providerId = getDiscoveryProviderId(panelId)
+  if (!providerId) { toast('请先填写提供商 ID', 'error'); return }
+  if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true') }
+  try {
+    if (panelId === 'amc') {
+      const added = addDiscoveredModelsToForm(panelId, models, mode)
+      toast('已应用 ' + added + ' 个模型', 'success')
+      return
+    }
+    const response = await fetch('/admin/api/providers/' + encodeURIComponent(providerId) + '/models', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: mode, models: models })
+    })
+    const data = await response.json()
+    if (!data.success) { toast(data.message || '应用模型失败', 'error'); return }
+    toast('已应用 ' + ((data.data && data.data.total) || models.length) + ' 个模型', 'success')
+    if (data.data && data.data.provider) showEditModelsList(providerId, data.data.provider.models || [])
+  } catch (error) {
+    toast('应用模型请求失败', 'error')
+  } finally {
+    if (button) { button.disabled = false; button.removeAttribute('aria-busy') }
+  }
+}
 
 function testNewAKey(btn) {
   const inp = btn.parentElement.querySelector('.aki'), k = inp.value.trim()
@@ -790,7 +934,7 @@ async function testAvailableModel(panelId, modelId, button) {
 
 async function testAvailableModels(panelId, batchButton) {
   const panel = document.getElementById(panelId)
-  const rows = panel ? Array.from(panel.querySelectorAll('[data-available-model]')) : []
+  const rows = panel ? Array.from(panel.querySelectorAll('[data-available-model]')).filter(function(row) { return !row.classList.contains('hd') }) : []
   if (!rows.length) { toast('当前没有可测试的可用模型', 'error'); return }
   if (batchButton) { batchButton.disabled = true; batchButton.setAttribute('aria-busy', 'true') }
   let passed = 0
@@ -1047,6 +1191,86 @@ adminNavLinks.forEach(function (link) {
 })
 window.addEventListener('hashchange', function () { setActiveAdminNav(location.hash) })
 setActiveAdminNav(location.hash)
+
+async function loadRuntimeMetrics(button) {
+  if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true') }
+  try {
+    const response = await fetch('/admin/api/metrics')
+    const payload = await response.json()
+    if (!response.ok || !payload.success) throw new Error(payload.message || '读取运行指标失败')
+    const data = payload.data || {}
+    Object.keys(data).forEach(function (key) { const element = document.querySelector('[data-metric="' + key + '"]'); if (element) element.textContent = key === 'successRate' ? Math.round(data[key] * 10000) / 100 + '%' : data[key] })
+    const status = document.querySelector('[data-metric-status]')
+    if (status) status.textContent = Object.keys(data.statusCounts || {}).map(function (key) { return key + ': ' + data.statusCounts[key] }).join(' · ') || '暂无数据'
+    const failures = document.querySelector('[data-metric-failures]')
+    if (failures) failures.textContent = [].concat(data.providerFailures || [], data.modelFailures || [], data.keyFailures || []).map(function (item) { return item.name + ': ' + item.count }).join(' · ') || '暂无失败记录'
+  } catch (error) { toast(error.message || '读取运行指标失败', 'error') } finally { if (button) { button.disabled = false; button.removeAttribute('aria-busy') } }
+}
+loadRuntimeMetrics(null)
+
+function bulkProviderIds() {
+  return Array.from(document.querySelectorAll('[data-bulk-provider]:checked')).map(function (item) { return item.getAttribute('data-bulk-provider') || '' }).filter(Boolean)
+}
+function bulkModelTargets() {
+  const grouped = {}
+  document.querySelectorAll('[data-bulk-model]:checked').forEach(function (item) {
+    const parts = (item.getAttribute('data-bulk-model') || '').split(':')
+    const providerId = parts.shift() || ''
+    const row = item.closest('[data-idx]')
+    const input = row && row.querySelector('input[id^="mid-"]')
+    const modelId = input ? input.value.trim() : ''
+    if (providerId && modelId) (grouped[providerId] || (grouped[providerId] = [])).push(modelId)
+  })
+  return Object.keys(grouped).map(function (providerId) { return { providerId: providerId, modelIds: grouped[providerId] } })
+}
+async function postBulk(payload) {
+  const response = await fetch('/admin/api/providers/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+  const data = await response.json()
+  if (!response.ok || !data.success) throw new Error(data.message || '批量操作失败')
+  return data
+}
+async function handleBulkAction(action, button) {
+  if (action === 'test-all') { await testAllProviders(button); return }
+  if (action === 'prune-invalid') { await pruneInvalidItems(button); return }
+  const providerIds = button.dataset.bulkProviderId ? [button.dataset.bulkProviderId] : bulkProviderIds()
+  const targets = bulkModelTargets()
+  if ((action.indexOf('providers') !== -1 && !providerIds.length) || (action.indexOf('models') !== -1 && !targets.length)) { toast('请先选择要操作的项目', 'error'); return }
+  if (action === 'delete-models' && !(await cM('确认删除选中的模型？此操作不可撤销'))) return
+  button.disabled = true
+  try {
+    const data = await postBulk(action.indexOf('providers') !== -1 ? { action: action, providerIds: providerIds } : { action: action, targets: targets })
+    toast(data.message || '批量操作完成', 'success')
+    setTimeout(function () { location.reload() }, 500)
+  } catch (error) { toast(error.message || '批量操作失败', 'error') } finally { button.disabled = false }
+}
+async function testAllProviders(button) {
+  const providers = Array.from(document.querySelectorAll('#plist .pi'))
+  if (!providers.length) { toast('当前没有可测试的 Provider', 'error'); return }
+  button.disabled = true; button.setAttribute('aria-busy', 'true')
+  let completed = 0; let passed = 0; let total = 0
+  providers.forEach(function (card) { total += card.querySelectorAll('[data-kidx]').length + card.querySelectorAll('[data-idx]').length })
+  try {
+    for (const card of providers) {
+      const id = card.getAttribute('data-id') || ''
+      for (const row of Array.from(card.querySelectorAll('[data-kidx]'))) { const idx = Number(row.dataset.kidx); if (await testKeyRow(id, idx)) passed++; completed++; toast('正在测试：' + completed + '/' + total, 'success') }
+      for (const row of Array.from(card.querySelectorAll('[data-idx]'))) { const idx = Number(row.dataset.idx); const input = row.querySelector('input[id^="mid-"]'); if (input && await testMdl(id, input.value.trim(), idx)) passed++; completed++; toast('正在测试：' + completed + '/' + total, 'success') }
+    }
+  } finally { button.disabled = false; button.removeAttribute('aria-busy') }
+  toast('全部测试完成：' + passed + '/' + total + ' 个有效', passed === total ? 'success' : 'error')
+}
+function invalidBulkTargets() {
+  const grouped = {}
+  document.querySelectorAll('[data-kidx]').forEach(function (row) { const status = row.querySelector('.key-test-status--error'); const input = row.querySelector('input[type="text"]'); const card = row.closest('.pi'); if (status && input && card && input.value.trim()) { const id = card.getAttribute('data-id') || ''; (grouped[id] || (grouped[id] = { providerId: id, invalidKeys: [], invalidModelIds: [] })).invalidKeys.push(input.value.trim()) } })
+  document.querySelectorAll('[data-idx]').forEach(function (row) { const status = row.querySelector('.model-test-status--error'); const input = row.querySelector('input[id^="mid-"]'); const card = row.closest('.pi'); if (status && input && card && input.value.trim()) { const id = card.getAttribute('data-id') || ''; (grouped[id] || (grouped[id] = { providerId: id, invalidKeys: [], invalidModelIds: [] })).invalidModelIds.push(input.value.trim()) } })
+  return Object.keys(grouped).map(function (id) { return grouped[id] })
+}
+async function pruneInvalidItems(button) {
+  const targets = invalidBulkTargets()
+  if (!targets.length) { toast('没有已标记为无效的 Key 或模型', 'error'); return }
+  if (!(await cM('确认删除测试失败的 Key 和模型？未测试项目会保留'))) return
+  button.disabled = true
+  try { const data = await postBulk({ action: 'prune-invalid', targets: targets }); toast(data.message || '无效项目已删除', 'success'); setTimeout(function () { location.reload() }, 500) } catch (error) { toast(error.message || '清理失败', 'error') } finally { button.disabled = false }
+}
 </script>
 </body></html>`)
 }
