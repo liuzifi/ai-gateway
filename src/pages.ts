@@ -529,18 +529,17 @@ function renderModelGrid(models, editId, providerId) {
     var addFn = editId
       ? "addMdlToEdit('" + editId + "','" + modelId.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'") + "')"
       : "addMdlToForm('" + modelId.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'") + "')"
-    return '<div class="mdl-item" data-available-model="' + safeId + '" data-model-name="' + escapeHtml(modelId.toLowerCase()) + '">' +
+    return '<div class="mdl-item" data-available-model="' + safeId + '" data-model-name="' + escapeHtml(modelId.toLowerCase()) + '" data-model-test-state="idle">' +
       '<input type="checkbox" class="model-discovery-check" data-model-discovery-check="' + escapeHtml(panelId) + '" aria-label="选择 ' + safeId + '">' +
-      '<i class="fas fa-cube" aria-hidden="true"></i>' +
-      '<span class="fx1 cp ov" data-copy="' + safeId + '">' + safeId + '</span>' +
-      '<span class="model-test-status" id="' + escapeHtml(statusId) + '" role="status" aria-live="polite"></span>' +
-      '<button class="icon-btn" data-available-test="' + safeId + '" data-available-panel="' + escapeHtml(panelId) + '" title="测试模型" aria-label="测试模型"><i class="fas fa-plug" aria-hidden="true"></i></button>' +
-      '<button class="btn btn-gh mdl-add-btn" onclick="' + addFn + '" title="添加到表单" aria-label="添加 ' + safeId + '">+</button></div>'
+      '<button type="button" class="model-name cp" data-copy="' + safeId + '" title="点击复制：' + safeId + '"><i class="fas fa-cube" aria-hidden="true"></i><span>' + safeId + '</span></button>' +
+      '<span class="model-test-status" id="' + escapeHtml(statusId) + '" role="status" aria-live="polite">未测试</span>' +
+      '<button class="icon-btn mdl-test-btn" data-available-test="' + safeId + '" data-available-panel="' + escapeHtml(panelId) + '" title="测试模型" aria-label="测试 ' + safeId + '"><i class="fas fa-plug" aria-hidden="true"></i></button>' +
+      '<button class="btn btn-gh mdl-add-btn" onclick="' + addFn + '" title="添加到应用模型列表" aria-label="添加 ' + safeId + '">+</button></div>'
   }).join('')
   return '<div class="mdl-list-actions">' +
-    '<div class="fc"><input class="fx1" type="search" data-model-discovery-search="' + escapeHtml(panelId) + '" placeholder="搜索模型名称" aria-label="搜索模型名称"><select class="select-sm" data-model-discovery-sort="' + escapeHtml(panelId) + '" aria-label="模型排序"><option value="name-asc">名称 A-Z</option><option value="name-desc">名称 Z-A</option></select></div>' +
-    '<div class="fc mt-1"><select class="select-sm" data-model-discovery-filter="' + escapeHtml(panelId) + '" aria-label="模型过滤"><option value="all">全部模型</option><option value="free">免费模型</option><option value="selected">已选择模型</option></select><button class="btn btn-s" data-model-discovery-select="' + escapeHtml(panelId) + '" data-select-mode="all">全选</button><button class="btn btn-s" data-model-discovery-select="' + escapeHtml(panelId) + '" data-select-mode="none">清空</button><button class="btn btn-s" data-available-batch="' + escapeHtml(editId || '') + '" data-available-panel="' + escapeHtml(panelId) + '" title="测试列表中的全部模型"><i class="fas fa-check-double" aria-hidden="true"></i>测试全部模型</button></div>' +
-    '<div class="fc mt-1"><select class="select-sm" data-model-discovery-mode="' + escapeHtml(panelId) + '" aria-label="模型应用方式"><option value="new-only">仅添加新模型</option><option value="replace">覆盖现有模型</option><option value="merge">合并并保持原启用状态</option></select><button class="btn btn-p" data-model-discovery-apply="' + escapeHtml(panelId) + '"><i class="fas fa-plus-circle" aria-hidden="true"></i>应用已选模型</button><span class="form-helper" data-model-discovery-count="' + escapeHtml(panelId) + '" role="status" aria-live="polite">已选 0 个</span></div>' +
+    '<div class="mdl-toolbar mdl-toolbar--search"><input type="search" data-model-discovery-search="' + escapeHtml(panelId) + '" placeholder="搜索模型名称" aria-label="搜索模型名称"><select class="select-sm" data-model-discovery-sort="' + escapeHtml(panelId) + '" aria-label="模型排序"><option value="name-asc">名称 A-Z</option><option value="name-desc">名称 Z-A</option></select><select class="select-sm" data-model-discovery-filter="' + escapeHtml(panelId) + '" aria-label="模型过滤"><option value="all">全部模型</option><option value="free">免费模型</option><option value="selected">已选择</option><option value="valid">测试有效</option></select></div>' +
+    '<div class="mdl-toolbar"><button class="btn btn-s" data-model-discovery-select="' + escapeHtml(panelId) + '" data-select-mode="all">全选</button><button class="btn btn-s" data-model-discovery-select="' + escapeHtml(panelId) + '" data-select-mode="none">清空</button><button class="btn btn-s" data-available-batch="' + escapeHtml(editId || '') + '" data-available-panel="' + escapeHtml(panelId) + '" title="测试当前筛选结果中的模型"><i class="fas fa-check-double" aria-hidden="true"></i>测试当前模型</button><span class="form-helper mdl-selection-count" data-model-discovery-count="' + escapeHtml(panelId) + '" role="status" aria-live="polite">已选 0 个</span></div>' +
+    '<div class="mdl-toolbar mdl-toolbar--apply"><select class="select-sm" data-model-discovery-mode="' + escapeHtml(panelId) + '" aria-label="模型应用方式"><option value="new-only">仅添加新模型</option><option value="replace">覆盖现有模型</option><option value="merge">合并并保持原启用状态</option></select><button class="btn btn-p" data-model-discovery-apply="' + escapeHtml(panelId) + '"><i class="fas fa-plus-circle" aria-hidden="true"></i>应用已选模型</button><button class="btn btn-g" data-model-discovery-apply-valid="' + escapeHtml(panelId) + '" disabled title="仅添加测试结果为可用的模型"><i class="fas fa-check-circle" aria-hidden="true"></i><span>添加有效模型（0）</span></button></div>' +
     '</div><div class="grid-2-gap6" data-model-discovery-grid="' + escapeHtml(panelId) + '">' + h + '</div>'
 }
 
@@ -574,6 +573,8 @@ document.addEventListener('click', function(event) {
   if (bulkAction) handleBulkAction(bulkAction.dataset.bulkAction || '', bulkAction)
   const selectButton = event.target.closest('[data-model-discovery-select]')
   if (selectButton) setDiscoverySelection(selectButton.dataset.modelDiscoverySelect || '', selectButton.dataset.selectMode || 'none')
+  const validApplyButton = event.target.closest('[data-model-discovery-apply-valid]')
+  if (validApplyButton) applyTestedValidModels(validApplyButton.dataset.modelDiscoveryApplyValid || '', validApplyButton)
   const applyButton = event.target.closest('[data-model-discovery-apply]')
   if (applyButton) applyDiscoveredModels(applyButton.dataset.modelDiscoveryApply || '', applyButton)
 })
@@ -602,6 +603,26 @@ function updateDiscoveryCount(panelId) {
   const selected = Array.from(checks).filter(function(check) { return check.checked }).length
   const count = panel.querySelector('[data-model-discovery-count]')
   if (count) count.textContent = '已选 ' + selected + ' 个'
+  updateValidModelAction(panelId)
+}
+
+function testedValidDiscoveryModels(panelId) {
+  const panel = discoveryPanel(panelId)
+  if (!panel) return []
+  return Array.from(panel.querySelectorAll('[data-available-model][data-model-test-state="success"]')).map(function(row) {
+    return { id: row.getAttribute('data-available-model') || '', enabled: true }
+  }).filter(function(model) { return model.id })
+}
+
+function updateValidModelAction(panelId) {
+  const panel = discoveryPanel(panelId)
+  if (!panel) return
+  const models = testedValidDiscoveryModels(panelId)
+  const button = panel.querySelector('[data-model-discovery-apply-valid]')
+  if (!button) return
+  button.disabled = models.length === 0
+  const label = button.querySelector('span')
+  if (label) label.textContent = '添加有效模型（' + models.length + '）'
 }
 
 function setDiscoverySelection(panelId, mode) {
@@ -634,7 +655,7 @@ function filterDiscoveryModels(panelId) {
     const name = row.dataset.modelName || ''
     const checked = row.querySelector('[data-model-discovery-check]')?.checked
     const matchesSearch = !query || name.indexOf(query) !== -1
-    const matchesFilter = filterMode === 'all' || (filterMode === 'free' && /(^|[-/:])free$/.test(name)) || (filterMode === 'selected' && checked)
+    const matchesFilter = filterMode === 'all' || (filterMode === 'free' && /(^|[-/:])free$/.test(name)) || (filterMode === 'selected' && checked) || (filterMode === 'valid' && row.dataset.modelTestState === 'success')
     row.classList.toggle('hd', !(matchesSearch && matchesFilter))
     grid.appendChild(row)
   })
@@ -674,18 +695,15 @@ function addDiscoveredModelsToForm(panelId, models, mode) {
   return added
 }
 
-async function applyDiscoveredModels(panelId, button) {
-  const models = selectedDiscoveryModels(panelId)
-  if (!models.length) { toast('请先选择模型', 'error'); return }
-  const modeSelect = discoveryPanel(panelId)?.querySelector('[data-model-discovery-mode]')
-  const mode = modeSelect ? modeSelect.value : 'new-only'
+async function applyModelCollection(panelId, button, models, mode, emptyMessage) {
+  if (!models.length) { toast(emptyMessage, 'error'); return }
   const providerId = getDiscoveryProviderId(panelId)
   if (!providerId) { toast('请先填写提供商 ID', 'error'); return }
   if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true') }
   try {
     if (panelId === 'amc') {
       const added = addDiscoveredModelsToForm(panelId, models, mode)
-      toast('已应用 ' + added + ' 个模型', 'success')
+      toast(added ? '已添加 ' + added + ' 个模型' : '有效模型均已存在，无需重复添加', 'success')
       return
     }
     const response = await fetch('/admin/api/providers/' + encodeURIComponent(providerId) + '/models', {
@@ -702,6 +720,17 @@ async function applyDiscoveredModels(panelId, button) {
   } finally {
     if (button) { button.disabled = false; button.removeAttribute('aria-busy') }
   }
+}
+
+async function applyDiscoveredModels(panelId, button) {
+  const modeSelect = discoveryPanel(panelId)?.querySelector('[data-model-discovery-mode]')
+  const mode = modeSelect ? modeSelect.value : 'new-only'
+  await applyModelCollection(panelId, button, selectedDiscoveryModels(panelId), mode, '请先选择模型')
+}
+
+async function applyTestedValidModels(panelId, button) {
+  await applyModelCollection(panelId, button, testedValidDiscoveryModels(panelId), 'new-only', '没有测试有效的模型，请先执行模型测试')
+  updateValidModelAction(panelId)
 }
 
 function testNewAKey(btn) {
@@ -895,10 +924,12 @@ async function testAvailableModel(panelId, modelId, button) {
   const status = row ? row.querySelector('.model-test-status') : null
   const editId = panelId.indexOf('mel-') === 0 ? panelId.slice(4) : ''
   const setStatus = function(state, message) {
-    if (!status) return
+    if (!status || !row) return
+    row.dataset.modelTestState = state
     status.textContent = state === 'testing' ? '测试中…' : state === 'success' ? '✓ 可用' : '✕ ' + (message || '不可用')
     status.className = 'model-test-status model-test-status--' + state
     status.title = message || ''
+    updateValidModelAction(panelId)
   }
   if (!modelId) return false
   if (button) button.disabled = true
@@ -947,7 +978,8 @@ async function testAvailableModels(panelId, batchButton) {
   } finally {
     if (batchButton) { batchButton.disabled = false; batchButton.removeAttribute('aria-busy') }
   }
-  toast('可用模型测试完成：' + passed + '/' + rows.length + ' 个可用', passed === rows.length ? 'success' : 'error')
+  updateValidModelAction(panelId)
+  toast('可用模型测试完成：' + passed + '/' + rows.length + ' 个可用，可点击“添加有效模型”批量添加', passed === rows.length ? 'success' : 'error')
 }
 
 // opencode 编辑表单 — 获取模型（复用 testKeyConnection 逻辑）
