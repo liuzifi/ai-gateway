@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "build": "wrangler deploy --dry-run"
+    "build": "wrangler deploy --dry-run",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "test:types": "tsc --noEmit --project tsconfig.json",
+    "test:syntax": "node .tmp/check-inline-js.js && node --check .tmp/inline.js",
+    "test:quality": "npm run test:syntax && npm run typecheck && npm run test:metrics",
+    "test:metrics": "node .tmp/quality-gate.mjs"
   },
   "keywords": [
     "cloudflare",
